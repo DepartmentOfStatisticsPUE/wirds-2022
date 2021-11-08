@@ -1,0 +1,31 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Wyliczamy wskaźnik przekłamania (ang. lie factor) według następującego wzoru
+
+$$
+\text{Lie Factor} = \frac{\text{Efekt na wykresie}}{\text{Efekt w danych}}
+$$
+
+Efekt na wykresie / w danych wyliczamy zgodnie ze wzorem
+
+$$
+\text{Efekt} = \frac{|y_2 - y_1|}{y_1}
+$$
+
+
+gdzie $y_1, y_2$ to odpowiednio wartości dla 1 i 2 grupy.
+
+http://smarterpoland.pl/wp-content/uploads/2018/01/Screen-Shot-2017-10-24-at-21.55.04-1024x588.png
+
+```{r}
+efekt_w_danych <- 6.8/4.8
+efekt_na_wykresie <- 461/195
+efekt_na_wykresie / efekt_w_danych
+```
+Wskaźnik lie factor wynosi 1,67 co oznacza, że efekt na wykresie jest przekłamany (zawyżony) o 67% w porównaniu do efektu, który widzimy w danych.
+
+
+
