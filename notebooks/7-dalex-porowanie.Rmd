@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("rpart.plot")
+```
+
+
+```{r}
+library(DALEX)
+library(rpart) ## CART - drzewo regresyjne
+library(rpart.plot) ## wizualizacja
+```
+
+Porównamy dwa modele:
+
+1. lm: price ~ flat_area + flat_rooms
+2. rpart: price ~ flat_area + flat_rooms
+
+```{r}
+model1 <- lm(price ~ flat_area + flat_build_year + flat_for_students + 
+               flat_balcony + ad_promo + flat_lift,  
+             rent_sub)
+
+model2 <- rpart(formula = price ~ flat_area + flat_build_year + 
+                  flat_for_students + flat_balcony + ad_promo + flat_lift, 
+                data = rent_sub, 
+                control = rpart.control(minsplit = 10, 
+                                        minbucket = 5))
+model2
+```
+Tworzymy dwa obiekty na potrzeby porównania modeli
+
+```{r}
+zmienne <- c("price", "flat_area", "flat_build_year",  
+             "flat_for_students", "flat_balcony", "ad_promo", "flat_lift")
+
+model1_ex <- explain(model = model1, 
+                     data = rent_sub[, zmienne], 
+                     y = rent_sub$price, 
+                     label = "lm")
+model2_ex <- explain(model = model2, 
+                     data = rent_sub[,zmienne], 
+                     y = rent_sub$price, 
+                     label = "rpart")
+
+```
+```{r}
+model2_area <- model_profile(explainer = model2_ex,
+                             variable = "flat_build_year")
+model1_area <- model_profile(explainer = model1_ex,
+                             variable = "flat_build_year")
+
+plot(model1_area, model2_area)
+
+```
+Ważnosci zmienych
+
+```{r}
+model1_imp <- variable_importance(model1_ex, N = 5000)
+model2_imp <- variable_importance(model2_ex, N = 5000)
+plot(model1_imp, model2_imp)
+```
+

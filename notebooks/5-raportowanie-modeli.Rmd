@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages(c(
+  "sjPlot",
+  "jtools",
+  "texreg",
+  "stargazer",
+  "huxtable"))
+```
+
+```{r}
+library(sjPlot)
+library(jtools)
+library(texreg)
+library(stargazer)
+library(readxl)
+```
+
+```{r}
+rent <- read_excel("../data-raw/rent-poznan.xlsx")
+head(rent)
+rent_sub <- subset(rent, 
+                   price >= 500 & price <= 5000 & 
+                   flat_area >= 10 & flat_area <= 250 & 
+                   flat_rooms == 1)
+rent_sub
+
+```     
+
+
+Chcemy zbudować 3 modele i je porównać
+
+```{r}
+model1 <- lm(price ~ flat_area, data = rent_sub)
+model2 <- update(model1, . ~ . + flat_for_students)
+model3 <- update(model2, . ~ . + flat_furnished)
+```
+
+Zaczniemy od pierwszego pakietu (sjPlot) i funkcji tab_model
+
+```{r}
+tab_model(model1, 
+          model2, 
+          model3,
+          dv.labels = c("Model 1", "Model 2", "Model 3"),
+          string.pred = "Zmienne",
+          string.intercept = "(Wyraz wolny)",
+          string.est = "Parametry",
+          string.se = "Błąd",
+          string.stat = "t",
+          show.se = TRUE,
+          show.ci = FALSE,
+          show.p = FALSE,
+          show.stat = TRUE,
+          show.aic = TRUE,
+          digits = 1)
+```
+
+jtools -- proste podsumowania modelu
+
+```{r}
+summ(model1, center = T, scale = T)
+```
+
+```{r}
+export_summs(model1, model2, 
+             model.names = c("M1", "M2"), 
+             center = T)
+```
+Przechodzimy do pakietu texreg
+
+screenreg - wyniki w notatniku w postaci tabeli z języka markdown
+texreg - raportowanie w formacie LaTeXa
+htmlreg - raportowanie do html
+
+```{r}
+screenreg(l = list("M1" = model1, 
+                   "M2" = model2,
+                   "M3" = model3),
+          digits = 1, 
+          single.row = TRUE, 
+          custom.note = "Objaśnienia: ....",
+          custom.coef.names = c("Wyraz wolny", "Powierzchnia",
+                                "Dla studentów", "Umeblowane"),
+          groups = list("charakterystyki"= 3:4))
+```
+
+```{r}
+texreg(l = list("M1" = model1, 
+                   "M2" = model2,
+                   "M3" = model3),
+          digits = 1, 
+          single.row = TRUE, 
+          custom.note = "Objaśnienia: ....",
+          custom.coef.names = c("Wyraz wolny", "Powierzchnia",
+                                "Dla studentów", "Umeblowane"),
+          groups = list("charakterystyki"= 3:4))
+```
+Pakiet stargazer
+
+```{r}
+stargazer(model1, model2, 
+          type = "text", 
+          single.row = FALSE,
+          keep.stat = c("n", "bic", "aic", "adj.rsq"))
+```
+
+
+```{r}
+plot_models(model1, model2, model3)
+```
+

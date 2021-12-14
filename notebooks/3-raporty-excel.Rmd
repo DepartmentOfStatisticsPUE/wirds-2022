@@ -1,0 +1,251 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("openxlsx")
+```
+
+```{r}
+library(openxlsx)
+library(readxl)
+```
+
+0. wczytujemy dane
+
+```{r}
+rent <- read_excel("../data-raw/rent-poznan.xlsx")
+head(rent)
+```
+
+
+
+1. zapisujemy ramkę danych do excela
+
+```{r}
+write.xlsx(x = rent[1:100,], 
+           file = "../reports/1-plik-rents.xlsx", 
+           asTable = TRUE)
+```
+
+
+
+2. zapisujemy do jednego pliku więcej niż jedną ramkę danych
+
+```{r}
+lista_danych <- list(
+  "Wilda" = subset(rent, quarter == "Wilda"),
+  "Grunwald" = subset(rent, quarter == "Grunwald")
+)
+```
+
+```{r}
+str(lista_danych, 1)
+```
+
+```{r}
+write.xlsx(x = lista_danych,
+           file = "../reports/2-kilka-tabel.xlsx")
+```
+
+3. sprawdzamy jak zadziała formatowanie ustalone przez globalne opcje
+
+```{r}
+options(openxlsx.numFmt = "0.00")
+
+write.xlsx(x = lista_danych,
+           file = "../reports/2-kilka-tabel.xlsx", 
+           overwrite = T)
+
+options(openxlsx.numFmt = NULL)
+```
+
+
+4. tworzymy własny plik MS Excel korzystając z dostępnych funkcji w pakiecie openxlsx
+
+
+
+```{r}
+skoroszyt <- createWorkbook(
+  creator = "Maciej",
+  title = "Wirds 2022")
+
+skoroszyt
+```
+```{r}
+addWorksheet(wb = skoroszyt, 
+             sheetName = "Spis treści", 
+             gridLines = FALSE, 
+             zoom = 150, 
+             tabColour = "red")
+
+skoroszyt
+```
+
+```{r}
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx")
+```
+
+Dodajemy do skoroszytu arkusz o nazwie dane źródłowe
+
+```{r}
+addWorksheet(wb = skoroszyt,
+             sheetName =  "Dane źródłowe")
+```
+
+
+```{r}
+skoroszyt
+```
+
+Aby zablokować piewszy wiersz w skoroszycie możemy użyć funkcji freezePane
+
+```{r}
+freezePane(wb = skoroszyt,
+           sheet = "Dane źródłowe",
+           firstRow = TRUE)
+```
+
+```{r}
+writeDataTable(wb = skoroszyt,
+               sheet = "Dane źródłowe", 
+               x = rent[1:50, 1:10],
+               colNames = TRUE, 
+               tableStyle = "TableStyleMedium3",
+               tableName = "najem")
+```
+
+
+```{r}
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx",
+             overwrite =T)
+```
+
+
+Szacujemy parametry modelu regresji liniowej i zapisujemy wyniki do nowego skoroszytu
+
+```{r}
+model1 <- lm(log(price) ~ log(flat_area) + factor(flat_rooms) + 
+               quarter,
+             data = rent)
+
+addWorksheet(wb = skoroszyt, 
+             sheetName = "Regresja",
+             tabColour = "blue")
+
+writeData(wb = skoroszyt, 
+          sheet = "Regresja", 
+          xy = c("C", 4), 
+          x = model1)
+
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx",
+             overwrite =T)
+```
+
+Do arkusza regresja dodajemy trzy wartości: dwie stałe i jedna wyliczeniowa
+
+
+```{r}
+writeData(wb = skoroszyt, sheet = "Regresja",
+          xy = c("A",1), x = 10, name = "zmienna1")
+
+writeData(wb = skoroszyt, sheet = "Regresja",
+          xy = c("A",2), x = 5, name = "zmienna2")
+
+writeFormula(wb = skoroszyt, sheet = "Regresja",
+             xy = c("A",3), 
+             x = "ROUND(SQRT(zmienna1*zmienna2),2)")
+
+
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx",
+             overwrite =T)
+
+
+```
+
+
+Dodajemy do arkusza spis treści nazwę oraz linki do konkretnych arkuszy w skorszycie
+
+```{r}
+writeData(wb = skoroszyt, sheet = "Spis treści", 
+          xy = c("B", 10),
+          x = "Spis treści")
+
+writeFormula(wb = skoroszyt, sheet = "Spis treści",
+             xy = c("B", 11),
+             x = makeHyperlinkString(sheet = "Dane źródłowe",
+                                     row = 1,
+                                     col = 3,
+                                     text = "1. Dane źródłowe"))
+
+writeFormula(wb = skoroszyt, sheet = "Spis treści",
+             xy = c("B", 12),
+             x = '=HYPERLINK("#Regresja!C4"; "2. Regresja")')
+
+# =HIPERŁĄCZE("#Regresja!C4"; "2. REGRESJA")
+
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx",
+             overwrite =T)
+
+```
+
+```{r}
+names(skoroszyt)
+```
+
+5. Formatowanie warunkowe
+
+```{r}
+addWorksheet(wb = skoroszyt,
+             sheetName = "Formatowanie")
+```
+
+Dodajemy dane
+
+```{r}
+writeData(wb = skoroszyt,
+          sheet = "Formatowanie",
+          x = subset(rent, 
+                     select = c(price, flat_area),
+                     subset = flat_rooms == 3))
+```
+
+Aby uruchomic formatowanie warunkowe
+
+```{r}
+conditionalFormatting(wb = skoroszyt,
+                      sheet = "Formatowanie",
+                      cols = 1,
+                      rows = 2:3119,
+                      type = "databar")
+```
+
+```{r}
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx",
+             overwrite =T)
+```
+
+Dodajemy formatowanie warunkowe na podstawie porównania z jakąś wartością
+
+```{r}
+conditionalFormatting(wb = skoroszyt,
+                      sheet = "Formatowanie",
+                      cols = 2,
+                      rows = 2:3119,
+                      rule = "< 30",
+                      style = createStyle(bgFill = "#FFC7CE"))
+```
+
+```{r}
+saveWorkbook(wb = skoroszyt, 
+             file = "../reports/3-krok-po-kroku.xlsx",
+             overwrite =T)
+```
+

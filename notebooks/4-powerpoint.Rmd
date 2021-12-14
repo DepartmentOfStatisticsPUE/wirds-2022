@@ -1,0 +1,167 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Instalacja pakietu
+
+```{r}
+install.packages("officer")
+```
+
+```{r}
+install.packages("rvg") 
+```
+
+Ładujemy pakiet
+
+```{r}
+library(officer) ## pakiet do tworzenia prezentacji
+library(tidyverse)
+library(rvg) ## pakiet do edytowalnych wykresów
+```
+
+Aby stworzyć prezentację w PowerPoint powinniśmy zacząć od funkcji `read_pptx()`
+
+1. stworzenie pustej prezentacji `prez <- read_pptx()`
+2. użycie istniejącego szablonu `prez <- read_pptx(path = "plik.pptx")`
+
+
+Zacznijmy od tworzenia pustej prezentacji
+
+```{r}
+prez <- read_pptx()
+class(prez)
+```
+Aby zobaczyć jakie slajdy mogę dodać to muszę użyć funkcji `layout_summary`, która jako wynik pokaże ramkę danych z dostępnymi szablonami slajdów.
+
+```{r}
+layout_summary(prez)
+```
+
+```{r}
+prez2 <- read_pptx("../data/przyklad.pptx")
+layout_summary(prez2)
+```
+
+Jaka jest zasada tworzenia slajdów PP z poziomu R
+
+- tworzymy obiekt prezentacji (`read_pptx()`) `%>%`
+  - dodać slajd `add_slide()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+  - dodać slajd `add_slide()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+    - uzupełniamy funkcjami zaczynajacymi się od `ph_*()` `%>%`
+- zapisujemy funkcją `print()`
+
+
+Podczas tych zajęć chciałbym stworzyć następującą prezentację:
+
++ slajd tytułowy
++ slajd z tytułem i treścią
++ slajd z "dziękuję za uwagę"
++ slajd z wykresem z ggplot2
++ slajd z danymi w postaci tabeli
++ slajd z wykresem z ggplot2, który możemy edytować
+
++ slajd tytułowy
+
+```{r}
+prez <- prez %>%
+  add_slide(layout = "Title Slide", master = "Office Theme") %>%
+  ph_with(value = "WIRDS 2021",
+          location = ph_location_type(type = "ctrTitle"))
+
+print(prez, target = "../data/prezentacja-zajecia.pptx")
+```
+
++ slajd z tytułem i treścią
+
+```{r}
+prez <- prez %>%
+  add_slide(layout = "Title and Content") %>%
+  ## tutaj dodaję tytuł slajdu
+    ph_with(value = "Najważniejsze klasy w języku R",
+            location = ph_location_type(type = "title")) %>%
+  ## w tym miejscu uzupełniam listę, która będzie w treści slajdu
+    ph_with(value = c("list", "data.frame", "matrix", "vector"),
+            location = ph_location_type(type = "body"))
+
+print(prez, target = "../data/prezentacja-zajecia.pptx")
+```
+
++ slajd z "dziękuję za uwagę"
+
+```{r}
+prez <- prez %>%
+  add_slide(layout = "Section Header") %>%
+    ph_with(value = "Dziękuję za uwagę", 
+            location = ph_location_type(type = "title"))
+
+length(prez)
+
+print(prez, target = "../data/prezentacja-zajecia.pptx")
+```
+
+
+tworzymy wykres w ggplot2
+
+```{r}
+wykres <- ggplot(data = mtcars, aes(x = wt, y = mpg, color = factor(am))) + 
+  geom_point() +
+  labs(x = "Waga", y = "Mile na galon", color = "Automatyczna",
+       title = "Samochody wg zbioru mtcars") + 
+  scale_color_brewer(type = "qual", palette = "Set1")
+
+wykres
+```
+
++ slajd z wykresem z ggplot2 -- sposób 1 i 2
+
+```{r}
+prez <- prez %>%
+  add_slide(layout = "Title and Content") %>%
+  ph_with(value = wykres, location = ph_location_type(type = "body")) %>%
+  
+  add_slide(layout = "Title and Content") %>%
+  ph_with(value = wykres, location = ph_location_fullsize())
+
+print(prez, target = "../data/prezentacja-zajecia.pptx")
+```
+
++ slajd z danymi w postaci tabeli
+
+```{r}
+prez <- prez %>%
+  add_slide(layout = "Title and Content") %>%
+  ph_with(value = mtcars[1:10, 1:5], 
+          location = ph_location_type(type = "body"))
+
+print(prez, target = "../data/prezentacja-zajecia.pptx")
+```
+
+
+
++ slajd z edytowalnym wykresem w ggplot2
+
+```{r}
+wykres_edit <- dml(ggobj = wykres)
+
+prez <- prez %>%
+  add_slide(layout = "Title and Content") %>%
+  ph_with(value = wykres_edit, location = ph_location_type(type = "body"))
+
+print(prez, target = "../data/prezentacja-zajecia.pptx")
+```
+
+Manipulacja slajdami
+
+- remove_slide()
+- move_slide()
+- on_slide() 
+
