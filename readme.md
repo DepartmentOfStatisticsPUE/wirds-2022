@@ -5,4 +5,5 @@ Repozytorium z materiałami z zajęć Wizualizacja i Raportowanie Danych Statyst
 Materiały z zajęć:
 
 1. [lie factor](notebooks/0-lie-factor.Rmd)
-1. [ggplot2 -- wprowadzenie](notebooks/1-ggplot2-intro.Rmd)
+2. [ggplot2 -- wprowadzenie](notebooks/1-ggplot2-intro.Rmd)
+3. [ggplot2 -- scales, ]

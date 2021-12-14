@@ -1,0 +1,68 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Pakiety
+
+```{r}
+library(readxl)
+library(scales)
+library(ggrepel)
+library(lubridate)
+library(tidyverse)
+```
+
+
+```{r}
+rent <- read_excel("../data-raw/rent-poznan.xlsx")
+head(rent)
+```
+
+```{r}
+scale_x_log <- function(...) {
+  scale_x_continuous(..., 
+                     trans = scales::log_trans(), 
+                     breaks = trans_breaks("log", function(x) exp(x)), 
+                     labels = trans_format("log", function(x) x))
+  }
+
+```
+
+```{r}
+ggplot(data = rent, aes(x = flat_area)) + 
+  geom_histogram() + 
+  scale_x_log() +
+  scale_y_continuous(labels = scales::comma_format())
+
+ggplot(data = rent, aes(x = flat_area)) + 
+  geom_histogram() + 
+  scale_x_log10()
+
+ggplot(data = rent, aes(x = log(flat_area))) +
+  geom_histogram() 
+```
+```{r}
+rent %>%
+  group_by(month = lubridate::floor_date(as.Date(date_modif), "month", week_start = 1),
+           rooms = ifelse(flat_rooms <= 3, flat_rooms, 4)) %>%
+  summarise(med = median(price),
+            n  = n()) %>%
+  ggplot(data = ., aes(x = month, y = med, color = factor(rooms))) + 
+  geom_line() +
+  geom_vline(xintercept = as.Date("2019-10-01"), linetype = "dotted", color = "black")
+```
+```{r}
+rent %>%
+  group_by(month = lubridate::floor_date(date_modif, "month", week_start = 1),
+           rooms = ifelse(flat_rooms <= 3, flat_rooms, 4)) %>%
+  summarise(med = median(price),
+            q1 = quantile(price, 0.25),
+            q3 = quantile(price, 0.75),
+            n  = n()) %>%
+  ggplot(data = ., aes(x = month, y = med, ymin = q1, ymax = q3)) + 
+  geom_ribbon(alpha = 0.5, fill = "blue") +
+  geom_line()  +
+  facet_wrap(~rooms, ncol = 4)
+```
+

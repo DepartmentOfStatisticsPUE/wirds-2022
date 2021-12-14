@@ -1,0 +1,89 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("DALEX")
+```
+
+```{r}
+library(readxl)
+library(DALEX)
+```
+
+```{r}
+rent <- read_excel("../data-raw/rent-poznan.xlsx")
+rent_subset <- subset(rent, 
+                      price >= 500 & price <= 15000 & 
+                      flat_area >= 15 & flat_area <= 250)
+head(rent_subset)
+```
+
+Budujemy model regresji w której wykorzystamy następujące zmienne
+
+price ~ flat_area + flat_rooms + flat_furnished + flat_for_students  + flat_balcony + flat_garage + flat_lift + flat_internet + flat_monitoring + flat_closed_area
+
+```{r}
+model1 <- lm(formula = price ~ flat_area + flat_rooms + flat_furnished + 
+               flat_for_students + flat_balcony + 
+               flat_garage + flat_lift + flat_internet + flat_monitoring + flat_closed_area,
+             data = rent_subset)
+summary(model1)
+```
+Wizualizację chcemy wykorzystać do realizacji następujących celów:
+
+1. chcemy okreslić czy model jest poprawny, czy dobrze odzwierciedla badane zjawisko.
+
+```{r}
+plot(rent_subset$price, fitted(model1), 
+     xlim = c(0, 15000), ylim = c(0, 15000),
+     xlab = "Obserwowane", ylab = "Oszacowane")
+abline(a = 0, b = 1, col = "red") ## y = x
+
+cor(rent_subset$price, fitted(model1), m = "s")
+```
+
+2. czy założenia modelu są spełnione.
+
+- zależność jest liniowa E(y|x) = b0 + b1 x1 + b2 x2 .... 
+- reszty powinny mieć rozkład normalny N(0, sigma)
+- reszty powinny być niezależne
+
+```{r}
+hist(rent_subset$flat_area, breaks = "fd")
+plot(model1)
+```
+
+Wykorzystamy pakiet DALEX do oceny modelu
+
+```{r}
+model1_exp <- explain(model = model1,
+                      data = rent_subset,
+                      y = rent_subset$price, 
+                      label = "lm1")
+```
+1. określenie zależności między zmienną y, a x
+
+```{r}
+model1_area <- model_profile(explainer = model1_exp, 
+                             variables = "flat_area", 
+                             groups =  "flat_rooms")
+plot(model1_area)
+```
+
+2. Chcemy dowiedzieć się dlaczego dany model określił taką, a nie inną wartość dla nowej obserwacji
+
+```{r}
+nowe_mieszkanie <- rent_subset[1322,]
+nowe_mieszkanie
+predict(model1, nowe_mieszkanie)
+```
+
+```{r}
+nowe_mieszkanie_pp <- predict_parts(model1_exp, nowe_mieszkanie)
+plot(nowe_mieszkanie_pp)
+
+nowe_mieszkanie_pp
+```
+
