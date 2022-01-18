@@ -1,0 +1,60 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("estimatr")
+```
+
+```{r}
+library(estimatr)
+library(sandwich)
+library(readxl)
+library(tidyverse)
+```
+
+```{r}
+pzn <- read_excel("rent-poznan.xlsx")
+
+pzn_sub <- pzn %>%
+  add_count(quarter, name = "quarter_count") %>%
+  filter(quarter_count > 1, 
+         price >= 500, price <= 15000,
+         flat_area >= 15, flat_area <= 250)
+pzn_sub
+```
+```{r}
+m1 <- lm(formula = price ~ flat_area + flat_rooms + 
+                           individual + flat_furnished + flat_for_students,
+                    data = pzn_sub)
+summary(m1)
+plot(m1)
+```
+
+
+```{r}
+## wynik jest taki sam jak z funkcji lm()
+model1 <- lm_robust(formula = price ~ flat_area + flat_rooms + 
+                           individual + flat_furnished + flat_for_students,
+                    data = pzn_sub,
+                    se_type = "classical")
+
+## stosujemy odporne błędy standardowe (odporne na heteroskedastyczność reszt)
+model2 <- lm_robust(formula = price ~ flat_area + flat_rooms + 
+                           individual + flat_furnished + flat_for_students,
+                    data = pzn_sub,
+                    se_type = "HC2")
+
+## stosujemy odporne błądy standardowe dla danych zgrupowanych (grupowanie wg lokalizacji)
+model3 <- lm_robust(formula = price ~ flat_area + flat_rooms + 
+                           individual + flat_furnished + flat_for_students,
+                    data = pzn_sub,
+                    clusters = quarter, 
+                    se_type = "CR2")
+
+model1
+model2
+model3
+```
+

@@ -1,0 +1,72 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("ggrepel") ### etykiety dla punktów
+install.packages("gganimate") ## do tworzenia animacji
+install.packages("transformr")
+install.packages("gifski")
+```
+
+```{r}
+library(ggrepel)
+library(gganimate)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(gifski)
+```
+
+```{r}
+pzn <- read_excel("rent-poznan.xlsx")
+pzn_sub <- pzn %>%
+  add_count(quarter, name = "quarter_count") %>%
+  filter(quarter_count >= 50, 
+         price >= 500, price <= 15000,
+         flat_area >= 15, flat_area <= 250)
+
+pzn_sub %>%
+  count(quarter)
+```
+
+```{r}
+dane_wykres <- pzn_sub %>%
+  filter(quarter_count >= 50) %>%
+  group_by(quarter) %>%
+  summarise(cena = mean(price),
+            pow = mean(flat_area),
+            liczba = n())
+
+p1 <- ggplot(data = dane_wykres, 
+       aes(x = pow, y = cena, label = quarter, size = liczba)) + 
+  geom_point() +
+  geom_text_repel() 
+
+ggsave(plot = p1, filename = "ggrepel.png", width = 10, height = 8)
+``` 
+
+```{r}
+dane_animacja <- pzn_sub %>%
+  group_by(czas = as.Date(round_date(date_modif, unit = "month"))) %>%
+  summarise(cena = mean(price)) 
+
+p <- ggplot(data = dane_animacja, aes(x = czas, y = cena)) + 
+  geom_point() +
+  geom_line() + 
+  transition_reveal(czas) +
+  ease_aes("linear")
+
+anim_save(animation = p, 
+          filename = "animacja.gif", 
+          render = gifski_renderer(),
+          type = "cairo")
+```
+
+
+```{r}
+ggplot(data = dane_animacja, aes(x = czas, y = cena)) + 
+  geom_point()
+```
+
