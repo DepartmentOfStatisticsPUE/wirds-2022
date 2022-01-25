@@ -5,9 +5,14 @@ output: html_notebook
 
 ```{r}
 install.packages("ggrepel") ### etykiety dla punktów
+
 install.packages("gganimate") ## do tworzenia animacji
-install.packages("transformr")
-install.packages("gifski")
+install.packages("transformr") ## do tworzenia animacji
+install.packages("gifski") ## do tworzenia animacji 
+
+install.packages("patchwork") ## do łączenia wielu wykresów z ggplot2
+
+install.packages("ggridges") ## do porównywania rozkładów zmiennych ciągłych
 ```
 
 ```{r}
@@ -17,10 +22,13 @@ library(readxl)
 library(tidyverse)
 library(lubridate)
 library(gifski)
+library(patchwork)
+library(ggridges)
 ```
 
 ```{r}
-pzn <- read_excel("rent-poznan.xlsx")
+pzn <- read_excel("../data-raw/rent-poznan.xlsx")
+
 pzn_sub <- pzn %>%
   add_count(quarter, name = "quarter_count") %>%
   filter(quarter_count >= 50, 
@@ -38,7 +46,25 @@ dane_wykres <- pzn_sub %>%
   summarise(cena = mean(price),
             pow = mean(flat_area),
             liczba = n())
+dane_wykres
+```
 
+```{r}
+p1 <- dane_wykres %>%
+  ggplot(data = ., 
+         aes(x = pow, y = cena, label = quarter)) + 
+  geom_point() +
+  geom_text_repel(segment.curvature = -0.1,
+                  segment.ncp = 3,
+                  segment.angle = 70,
+                  arrow = arrow(length = unit(0.010, "npc")))
+
+ggsave(plot = p1, file = "../figures/wykres-ggrepel.png", width = 7, height = 4)
+p1
+```
+
+
+```{r}
 p1 <- ggplot(data = dane_wykres, 
        aes(x = pow, y = cena, label = quarter, size = liczba)) + 
   geom_point() +
@@ -70,3 +96,124 @@ ggplot(data = dane_animacja, aes(x = czas, y = cena)) +
   geom_point()
 ```
 
+## Sekcja dot. patchwork
+
+```{r}
+p1 <- ggplot(data = pzn_sub, aes(x = flat_area, y = price)) + 
+  geom_point() + 
+  labs(x = "Powierzchnia", y = "Cena")
+
+p2 <- ggplot(data = subset(pzn_sub, quarter_count >= 200), 
+             aes(x = quarter, y = price)) + geom_boxplot() +
+  labs(x = "Dzielnica", y = "Cena") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+p3 <- ggplot(data = pzn_sub, aes(x = factor(flat_rooms), y = price)) + 
+  stat_summary(fun = mean, geom = "bar") +
+  labs(x = "Liczba pokoi", y = "Cena")
+
+p1
+p2
+p3
+```
+
+```{r}
+p1 + p2 + p3
+```
+
+```{r}
+p1 / p2 / p3
+```
+
+```{r}
+p1 | (p2 / p3)
+```
+
+```{r}
+p1 + p2 + p3 + 
+  plot_layout(ncol = 2, byrow = FALSE) +
+  plot_annotation(title = "Tytuł dla wszystkich wykresów",
+                  tag_levels = "a",
+                  tag_prefix = "fig.",
+                  tag_suffix = ")")
+```
+
+```{r}
+pzn_sub_top5 <- pzn_sub %>%
+  filter(quarter_count >= 1189)
+
+p1a <- ggplot(data = pzn_sub_top5, 
+              aes(x = flat_area, y = price, color = quarter)) + 
+  geom_point()
+
+p1b <- ggplot(data = pzn_sub_top5, 
+              aes(x = flat_rooms, y = price, color = quarter, size = quarter_count)) +
+  geom_point()
+
+p1a
+p1b
+```
+
+```{r}
+(p1a / p1b) + plot_layout(guides = "collect")
+```
+
+```{r}
+p1 + inset_element(p2, left = 0.5, bottom = 0.5, right = 0.9, top = 0.9)
+```
+
+```{r}
+p1 + p2 + p3 + p1a + p1b +
+  plot_layout(guides = "collect")
+
+p1 + p2 + p3 + p1a + p1b +
+  plot_layout(guides = "collect") +
+  guide_area()
+```
+
+AABB
+CCCC
+DDEE
+
+```{r}
+my_layout <- "
+AABB
+AACC
+DDEE
+"
+p1 + p2 + p3 + p1a + p1b +
+  plot_layout(design = my_layout, guides = "collect")
+```
+
+```{r}
+my_layout2 <- "
+A#B
+A#B
+#CC
+"
+p1 + p2 + p3 + plot_layout(design = my_layout2)
+```
+
+```{r}
+p1 + p2 + p3 + p1a +
+  plot_layout(widths = c(2,1), heights = c(2, 1))
+```
+
+
+Porównywanie rozkładów zmiennych ciągłych między grupami
+
+
+```{r}
+ggplot(data = pzn_sub_top5, aes(x = price, y = quarter)) +
+  scale_x_continuous(limits = c(0, 5000)) + 
+  geom_density_ridges(scale = 2,
+                      quantile_lines = TRUE, 
+                      quantiles = 2, 
+                      alpha = 0.5,
+                      
+                      jittered_points = TRUE,
+                      position = position_points_jitter(width = 0.05, height = 0),
+                      point_shape = "|",
+                      point_alpha = 1)  +
+  theme_ridges()
+```
