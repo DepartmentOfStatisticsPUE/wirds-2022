@@ -1,0 +1,110 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+# install.packages("cli")
+# install.packages("gtsummary")
+# install.packages("rpivotTable")
+# install.packages("expss")
+```
+
+```{r}
+library(gtsummary)
+library(rpivotTable) ## raczej do shiny
+library(expss) ## tworzenie statycznych tabel przestawnych
+library(tidyverse)
+```
+
+Zaczynamy od gtsummary
+```{r}
+## nowy zbiór danych
+mtcars_new <- mtcars
+## tworzę zmienne typu factor
+mtcars_new$cyl <- factor(mtcars_new$cyl, c(4,6,8), c(4,6,8), ordered = T)
+mtcars_new$am  <- factor(mtcars_new$am, c(0, 1), c("No", "Yes"))
+## nadaję atrybuty
+attr(mtcars_new$mpg, "label") <- "Mile na galon"
+attr(mtcars_new$cyl, "label") <- "Liczba cylindrów"
+attr(mtcars_new$am,  "label") <- "Automatyczna"
+## tworzę podzbiór 
+mtcars_new_for_report <- mtcars_new[, c("mpg", "cyl", "am", "wt", "hp")]
+```
+
+```{r}
+mtcars_new_for_report %>% tbl_summary()
+```
+
+
+```{r}
+mtcars_new_for_report %>% tbl_summary(by = "am") %>% add_p() 
+```
+
+
+
+```{r}
+mtcars_new_for_report %>% 
+  tbl_summary(by = "am",
+              label = list(wt ~ "Waga", hp ~ "Konie mechaniczne"),
+              digits = list(all_continuous() ~ 2,
+                            all_categorical() ~ 0),
+              statistic = list(all_continuous() ~ "{mean} ({sd})",
+                               all_categorical() ~ "{n}/{N} ({p}%)"))  %>%
+  add_overall(col_label = "**Ogółem**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Automatyczna**")
+```
+
+
+rpivotTable
+
+```{r}
+rpivotTable(mtcars, locale = "pl")
+```
+
+
+Pakiet expss
+
+```{r}
+mtcars_new_for_report %>%
+  tab_cells(cyl) %>%
+  tab_cols(am) %>%
+  tab_stat_cases(total_label = "Ogółem") %>%
+  tab_pivot()
+```
+
+```{r}
+mtcars %>%
+  tab_cells(cyl) %>%
+  tab_cols(total(label = "Ogółem"), am, vs) %>%
+  tab_stat_cases(total_label = "Ogółem") %>%
+  tab_pivot()
+```
+
+```{r}
+mtcars %>%
+  tab_cells(cyl) %>%
+  tab_cols(total(label = "Ogółem"), am %nest% vs) %>%
+  tab_stat_cases(total_label = "Ogółem") %>%
+  tab_pivot()
+```
+
+```{r}
+mtcars %>%
+  tab_cells(mpg, wt) %>%
+  tab_cols(total(), am) %>%
+  tab_stat_fun("Średnia" = mean, "Mediana" = median) %>%
+  tab_pivot()
+```
+
+```{r}
+mtcars %>%
+  tab_cells(mpg, wt) %>%
+  tab_cols(total(label = "Ogółem"), am) %>%
+  tab_stat_fun("Średnia" = mean, "Mediana" = median, method = list) %>%
+  tab_pivot()
+```
+
