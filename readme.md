@@ -14,3 +14,4 @@ Materiały z zajęć:
 8. [shiny](shiny/) [dwie aplikacje]
 9. [odporne błędy standardowe](notebooks/8-odporne-bledy-standardowe.Rmd)
 10. [ggrepel, gganimate](notebooks/9-ggplot-exts.Rmd)
+11. [tabele](notebooks/10-raporty-tabele.Rmd)
